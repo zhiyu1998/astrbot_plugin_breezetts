@@ -48,6 +48,7 @@ jobs:
         run: |
           set -e
           META_VER="$(grep -E '^version:' metadata.yaml | head -n1 | sed -E 's/^version:[[:space:]]*//' | tr -d '"'"'"'[:space:]')"
+          META_VER="${META_VER#v}"
           TAG_VER="${TAG#v}"
           echo "metadata.yaml: $META_VER | tag: $TAG_VER"
           if [ "$META_VER" != "$TAG_VER" ]; then
