@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.2
+- 新增：`breeze余额` 指令（别名 `breeze余额查询` / `breeze查余额` / `breeze积分`，仅管理员），显示 Breeze 账户的 Current Balance、今日消耗与最近一次扣费。
+- 新增：LLM 工具 `breeze_balance`，在对话里问「还有多少余额」时由模型自动调用。
+- 余额查询走 `GET {api_base}/balance`（`xi-api-key` 认证），复用提供商配置里的 `api_key`，不需要再填一遍。
+
 ## v0.2.1
 - 新增：向 `CONFIG_METADATA_2` 注入显示名模板，WebUI 「文字转语音 → 新增」列表显示为 **Breeze TTS**，不再是原始类型名 `breeze_tts`。
 - 新增：真实 `test()` 实现，WebUI 的「测试」按钮会实际合成一句短文本，能暴露 401/超时/非音频响应等问题。

@@ -83,6 +83,24 @@ data/plugins/astrbot_plugin_breezetts/
 3. 填 `api_key`（必填）、`api_base`、`model`、`voice`
 4. 保存后在 TTS 设置里选它作为默认提供商
 
+## 余额查询
+
+插件顺带把开发者后台那个 **Current Balance** 也带上了，数据来自 `GET {api_base}/balance`（和网页上显示的是同一个数）。
+
+- 指令：`/breeze余额`（别名 `/breeze余额查询`、`/breeze查余额`、`/breeze积分`），**仅管理员**可用
+- 也可以直接在对话里问「Breeze 还剩多少余额」，插件注册了 LLM 工具 `breeze_balance`，模型会自动调用
+
+返回示例：
+
+```text
+💳 Breeze 余额：1,297.50 积分
+📅 今日消耗：24.50 积分 · 8 次
+🕒 最近：12:31 语音合成 4.20 积分（23 字）
+🔑 密钥：key_h62rtw429ev2
+```
+
+余额查询复用提供商配置里的 `api_key` / `api_base` / `proxy`，不需要另外再填一份 key。
+
 ## 配置项
 
 | 字段 | 说明 | 默认 |
@@ -112,6 +130,7 @@ git push origin v0.2.2
 
 ## 实现说明
 
+- 余额：`GET {api_base}/balance`，用 `xi-api-key` 头认证（网页后台是 cookie 会话，两者不通用）
 - 主接口：`POST {api_base}/text-to-speech/{voice}?output_format=wav`
 - 兜底：404/405 时自动尝试 OpenAI 风格的 `POST {api_base}/audio/speech`
 - 返回的音频写入 `data/temp/breeze_tts_<id>.<fmt>` 后交给 AstrBot 发送
