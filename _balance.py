@@ -24,6 +24,7 @@ import httpx
 
 TZ_CN = timezone(timedelta(hours=8))
 BALANCE_PATH = "/balance"
+DAILY_CLAIM_PATH = "/api/credits/daily-claim"
 SUMMARY_PATH = "/api/credits/summary"
 ENTITLEMENT_PATH = "/api/billing/entitlements"
 DEFAULT_TIMEOUT = 30.0
@@ -130,6 +131,82 @@ async def fetch_web_summary(
         raise BalanceError("网页接口没有返回余额数据（Cookie 可能不完整）")
 
     return {"summary": summary, "entitlements": entitlements if isinstance(entitlements, dict) else {}}
+
+
+async def claim_daily(
+    cookie: str,
+    *,
+    web_base: str = DEFAULT_WEB_BASE,
+    timeout: float = DEFAULT_TIMEOUT,
+    proxy: str = "",
+    reward_tier: str = "",
+) -> dict:
+    """领取每日奖励：POST {web_base}/api/credits/daily-claim。
+
+    没有 body 时服务端会按账号资质自动选档（discord 档 400 / 标准档 100），
+    所以默认不传 reward_tier。
+    """
+    jar = (cookie or "").strip()
+    if not jar:
+        raise BalanceError("领每日奖励需要网页 Cookie，先到插件配置里填上")
+    if jar.lower().startswith("cookie:"):
+        jar = jar.split(":", 1)[1].strip()
+
+    base = (web_base or DEFAULT_WEB_BASE).rstrip("/")
+    headers = {
+        "Cookie": jar,
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": WEB_USER_AGENT,
+        "Referer": f"{base}/app/home",
+        "Origin": base,
+    }
+    payload: dict = {}
+    if reward_tier:
+        payload["reward_tier"] = reward_tier
+
+    try:
+        async with httpx.AsyncClient(**_client_kwargs(timeout, proxy)) as client:
+            resp = await client.post(
+                f"{base}{DAILY_CLAIM_PATH}", headers=headers, json=payload
+            )
+    except httpx.HTTPError as exc:
+        raise BalanceError(f"连接 Breeze 失败：{exc}") from exc
+
+    if resp.status_code in (401, 403):
+        raise CookieExpired("网页 Cookie 已失效，去后台重新复制一份")
+    if resp.status_code >= 400:
+        raise BalanceError(f"领取失败 HTTP {resp.status_code}：{resp.text[:200]}")
+
+    try:
+        data = resp.json()
+    except ValueError as exc:
+        raise BalanceError(f"返回内容不是 JSON：{resp.text[:200]}") from exc
+    if not isinstance(data, dict):
+        raise BalanceError(f"返回内容格式异常：{str(data)[:200]}")
+    return data
+
+
+def format_claim(data: dict) -> str:
+    """claim_daily 的返回 → 聊天文本。"""
+    if data.get("already_claimed"):
+        balance = data.get("balance")
+        tail = f"，当前余额 {_num(float(balance))} 积分" if balance is not None else ""
+        reset = _parse_time(data.get("daily_claim_next_reset_at"))
+        when = f"，{reset:%m-%d %H:%M} 之后可再领" if reset else ""
+        return f"ℹ️ 今天已经签过啦{tail}{when}"
+
+    issued = float(data.get("credits_issued") or 0)
+    balance = data.get("balance")
+    tier = data.get("daily_claim_reward_tier") or ""
+    tier_text = {"discord": "（Discord 档）", "standard": "（标准档）"}.get(tier, "")
+    lines = [f"🎁 签到成功，+{_num(issued)} 积分{tier_text}"]
+    if balance is not None:
+        lines.append(f"💳 当前余额：{_num(float(balance))} 积分")
+    reset = _parse_time(data.get("daily_claim_next_reset_at"))
+    if reset:
+        lines.append(f"⏰ 下次可领：{reset:%m-%d %H:%M}")
+    return "\n".join(lines)
 
 
 def _num(value: float) -> str:
@@ -250,6 +327,15 @@ def read_plugin_config() -> dict:
         return data if isinstance(data, dict) else {}
     except Exception:  # noqa: BLE001
         return {}
+
+
+def seconds_until_claim(hour: int = 8, minute: int = 5) -> float:
+    """距离下一个「北京时间 hour:minute」还有多少秒（用于每日自动领取）。"""
+    now = datetime.now(TZ_CN)
+    target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if target <= now:
+        target += timedelta(days=1)
+    return max(60.0, (target - now).total_seconds())
 
 
 def _as_mapping(value) -> dict:

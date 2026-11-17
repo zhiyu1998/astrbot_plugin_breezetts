@@ -3,13 +3,20 @@
     "description": "网页 Cookie（可选）",
     "type": "string",
     "default": "",
-    "hint": "登录 breezeblue.ai 后从开发者工具里复制整段 Cookie（形如 a=b; c=d）。填了之后余额会多出套餐、今日签到等信息；cookie 过期时这里改掉即可，改完立即生效，不用重启",
+    "hint": "登录 breezeblue.ai 后从开发者工具里复制整段 Cookie（形如 a=b; c=d）。填了之后余额会多出套餐、今日签到可领等信息，也可以用 /breeze签到 领每日奖励；cookie 过期时这里改掉即可，改完立即生效，不用重启",
     "obvious_hint": true
   },
   "WEB_BASE": {
     "description": "网页站点地址",
     "type": "string",
     "default": "https://breezeblue.ai",
-    "hint": "只用于 cookie 方式查询余额，一般不用改"
+    "hint": "只用于 cookie 方式查询余额与领取每日奖励，一般不用改"
+  },
+  "AUTO_CLAIM_DAILY": {
+    "description": "自动领取每日奖励",
+    "type": "bool",
+    "default": false,
+    "hint": "开启后每天 08:05（北京时间，即 UTC 00:00 重置后）自动领一次，省得忘记；需要在上面填好网页 Cookie",
+    "obvious_hint": true
   }
 }

@@ -1,7 +1,7 @@
 name: astrbot_plugin_breezetts
 display_name: Breeze TTS 适配器
 desc: 以插件方式向 AstrBot 注入 Breeze TTS 提供商（text_to_speech），不改动 AstrBot 本体。
-version: v0.2.3
+version: v0.2.4
 author: 橘域网
 repo: https://github.com/zhiyu1998/astrbot_plugin_breezetts
 astrbot_version: ">=4.16,<5"
