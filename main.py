@@ -14,8 +14,10 @@ from ._provider import DEFAULT_API_BASE, PROVIDER_TYPE_NAME, ProviderBreezeTTS  
 class BreezeTTSPlugin(Star):
     """Breeze TTS 适配器插件：注册提供商 + 余额查询指令。"""
 
-    def __init__(self, context: Context) -> None:
+    def __init__(self, context: Context, config=None) -> None:
         super().__init__(context)
+        # AstrBot 把 _conf_schema.json 对应的插件配置作为第二个参数注入
+        self.config = config
         from astrbot.core.provider.register import provider_cls_map
 
         meta = provider_cls_map.get(PROVIDER_TYPE_NAME)
@@ -60,7 +62,7 @@ class BreezeTTSPlugin(Star):
         配置是每次调用时现读的，WebUI 里改完 cookie 立即生效，不用重启。
         """
         config = self.context.get_config()
-        settings = _balance.resolve_settings(config)
+        settings = _balance.resolve_settings(config, self.config)
         if not settings["has_provider"] and not settings["cookie"]:
             raise _balance.BalanceError(
                 "还没有添加 Breeze TTS 提供商，先到 WebUI → 配置 → 提供商 → 文字转语音 里添加"

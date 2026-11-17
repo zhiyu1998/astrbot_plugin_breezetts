@@ -252,10 +252,21 @@ def read_plugin_config() -> dict:
         return {}
 
 
-def resolve_settings(config) -> dict:
+def _as_mapping(value) -> dict:
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return value
+    try:
+        return dict(value)
+    except (TypeError, ValueError):
+        return {}
+
+
+def resolve_settings(config, plugin_config=None) -> dict:
     """合并「提供商配置」与「插件配置」，插件配置优先（cookie 更常在插件页改）。"""
     provider = pick_provider_config(config) or {}
-    plugin = read_plugin_config()
+    plugin = _as_mapping(plugin_config) or read_plugin_config()
 
     try:
         timeout = float(provider.get("timeout") or DEFAULT_TIMEOUT)
