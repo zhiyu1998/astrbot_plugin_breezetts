@@ -1,0 +1,4 @@
+# 发版打包时排除开发用文件（git archive / GitHub Download ZIP 生效）
+.github export-ignore
+.gitignore export-ignore
+.gitattributes export-ignore

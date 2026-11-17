@@ -1,0 +1,97 @@
+name: Release
+
+# 打 tag（v*）自动建 Release，并附上插件 zip；也支持手动指定已有 tag 补建
+#
+# 注意：打附注 tag 时一定要加 --cleanup=verbatim，例如
+#   git tag -a v0.2.2 -F notes.md --cleanup=verbatim
+# 否则 git 会把以 # 开头的行（Markdown 的 ## 标题）当注释删掉。
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "要补建 Release 的已有 tag（例如 v0.2.1）"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "使用 tag: $TAG"
+
+      - name: Fetch tag object
+        run: git fetch --force origin "refs/tags/${{ steps.tag.outputs.tag }}:refs/tags/${{ steps.tag.outputs.tag }}"
+
+      # metadata.yaml 里的 version 是插件实际加载用的版本号，和 tag 不一致会让人装错版本
+      - name: Check metadata version
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -e
+          META_VER="$(grep -E '^version:' metadata.yaml | head -n1 | sed -E 's/^version:[[:space:]]*//' | tr -d '"'"'"'[:space:]')"
+          TAG_VER="${TAG#v}"
+          echo "metadata.yaml: $META_VER | tag: $TAG_VER"
+          if [ "$META_VER" != "$TAG_VER" ]; then
+            echo "::warning::metadata.yaml 版本 $META_VER 与 tag $TAG 不一致"
+          fi
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -e
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG 已存在，跳过创建"
+            exit 0
+          fi
+
+          # 优先用附注 tag 的完整正文当 release notes
+          # 用 %(contents) 而不是 %(contents:body)：后者会把首个段落丢掉
+          NOTES_FILE="$(mktemp)"
+          git tag -l --format='%(contents)' "$TAG" > "$NOTES_FILE"
+          if [ ! -s "$NOTES_FILE" ] || [ "$(tr -d '[:space:]' < "$NOTES_FILE" | wc -c)" -lt 10 ]; then
+            git tag -l --format='%(contents:subject)' "$TAG" > "$NOTES_FILE"
+          fi
+
+          if [ "$(tr -d '[:space:]' < "$NOTES_FILE" | wc -c)" -lt 10 ]; then
+            echo "tag 没有说明，改用 GitHub 自动生成"
+            gh release create "$TAG" --title "$TAG" --generate-notes
+          else
+            gh release create "$TAG" --title "$TAG" --notes-file "$NOTES_FILE"
+          fi
+
+      - name: Attach plugin zip
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -e
+          # 已存在同名资产就跳过，避免重复上传报错
+          ZIP="astrbot_plugin_breezetts.zip"
+          git archive --format=zip --prefix=astrbot_plugin_breezetts/ -o "$ZIP" "$TAG"
+          if gh release view "$TAG" --json assets --jq '.assets[].name' | grep -qx "$ZIP"; then
+            echo "资产 $ZIP 已存在，跳过"
+          else
+            gh release upload "$TAG" "$ZIP" --clobber
+          fi

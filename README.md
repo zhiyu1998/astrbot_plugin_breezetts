@@ -30,6 +30,20 @@ git clone <repo> astrbot_plugin_breezetts
 | `timeout` | 超时（秒） | `60` |
 | `proxy` | HTTP 代理 | 空 |
 
+## 发版
+
+推一个 `v*` tag 就会自动建 Release 并附上插件 zip（`.github/workflows/release.yml`）：
+
+```bash
+# 附注 tag 一定要带 --cleanup=verbatim，否则 Markdown 的 ## 标题会被当注释删掉
+git tag -a v0.2.2 -F notes.md --cleanup=verbatim
+git push origin v0.2.2
+```
+
+- Release 正文取自 tag 的说明，tag 没说明时用 GitHub 自动生成
+- 资产是 `git archive` 出来的 `astrbot_plugin_breezetts.zip`，`.github`、`.gitignore`、`.gitattributes` 通过 `export-ignore` 排除
+- 漏建了可以手动补：Actions → Release → Run workflow，填已有 tag
+
 ## 实现说明
 
 - 主接口：`POST {api_base}/text-to-speech/{voice}?output_format=wav`

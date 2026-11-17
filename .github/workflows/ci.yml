@@ -1,0 +1,35 @@
+name: CI
+
+# 只做最基本的语法体检：插件是纯 Python，没有依赖外部服务就能跑的这一层
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Byte-compile
+        run: python -m compileall -q main.py _provider.py
+
+      - name: Check metadata.yaml
+        run: |
+          set -e
+          for key in name display_name desc version author; do
+            grep -qE "^${key}:" metadata.yaml || { echo "metadata.yaml 缺少 ${key}"; exit 1; }
+          done
+          echo "metadata.yaml 字段齐全"
