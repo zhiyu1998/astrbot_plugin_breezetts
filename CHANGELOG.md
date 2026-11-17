@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.3
+- 新增：插件配置项 `WEB_COOKIE`（网页 Cookie）与 `WEB_BASE`。填了 cookie 后余额里会多出套餐、今日签到可领等信息。
+- 改：余额查询同时支持 API Key 与网页 Cookie 两条数据源，任一可用即可；cookie 失效只会多一行提示，不影响 api_key 的余额显示。
+- 改：每次调用都现读配置（提供商配置 + `data/config/astrbot_plugin_breezetts_config.json`），WebUI 里换 cookie 立即生效，不用重启。
+
 ## v0.2.2
 - 新增：`breeze余额` 指令（别名 `breeze余额查询` / `breeze查余额` / `breeze积分`，仅管理员），显示 Breeze 账户的 Current Balance、今日消耗与最近一次扣费。
 - 新增：LLM 工具 `breeze_balance`，在对话里问「还有多少余额」时由模型自动调用。

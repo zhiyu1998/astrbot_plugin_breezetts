@@ -10,7 +10,7 @@ from . import _balance
 from ._provider import DEFAULT_API_BASE, PROVIDER_TYPE_NAME, ProviderBreezeTTS  # noqa: F401
 
 
-@register("breeze_tts", "橘域网", "Breeze TTS 适配器", "0.2.2")
+@register("breeze_tts", "橘域网", "Breeze TTS 适配器", "0.2.3")
 class BreezeTTSPlugin(Star):
     """Breeze TTS 适配器插件：注册提供商 + 余额查询指令。"""
 
@@ -55,23 +55,48 @@ class BreezeTTSPlugin(Star):
             return f"查询失败：{exc}"
 
     async def query_balance(self) -> str:
-        """读取提供商配置里的 api_key / api_base，请求 /v1/balance 并排版。"""
+        """读取提供商配置 + 插件配置（WEB_COOKIE），合并两个数据源后排版。
+
+        配置是每次调用时现读的，WebUI 里改完 cookie 立即生效，不用重启。
+        """
         config = self.context.get_config()
-        provider_config = _balance.pick_provider_config(config)
-        if not provider_config:
+        settings = _balance.resolve_settings(config)
+        if not settings["has_provider"] and not settings["cookie"]:
             raise _balance.BalanceError(
                 "还没有添加 Breeze TTS 提供商，先到 WebUI → 配置 → 提供商 → 文字转语音 里添加"
             )
 
-        try:
-            timeout = float(provider_config.get("timeout") or _balance.DEFAULT_TIMEOUT)
-        except (TypeError, ValueError):
-            timeout = _balance.DEFAULT_TIMEOUT
+        api_key = settings["api_key"]
+        cookie = settings["cookie"]
+        timeout = settings["timeout"]
+        proxy = settings["proxy"]
 
-        data = await _balance.fetch_balance(
-            str(provider_config.get("api_base") or DEFAULT_API_BASE),
-            str(provider_config.get("api_key") or ""),
-            timeout=timeout,
-            proxy=str(provider_config.get("proxy") or ""),
-        )
-        return _balance.format_balance(data)
+        data: dict | None = None
+        web: dict | None = None
+        warns: list[str] = []
+
+        if api_key:
+            try:
+                data = await _balance.fetch_balance(
+                    settings["api_base"], api_key, timeout=timeout, proxy=proxy
+                )
+            except _balance.BalanceError as exc:
+                warns.append(str(exc))
+
+        if cookie:
+            try:
+                web = await _balance.fetch_web_summary(
+                    cookie,
+                    web_base=settings["web_base"],
+                    timeout=timeout,
+                    proxy=proxy,
+                )
+            except _balance.BalanceError as exc:
+                warns.append(str(exc))
+
+        if data is None and web is None:
+            raise _balance.BalanceError(
+                "；".join(warns) or "api_key 和 cookie 都没有配置，先在提供商配置里填一个"
+            )
+
+        return _balance.format_balance(data, web=web, warn="；".join(warns))

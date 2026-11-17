@@ -1,0 +1,15 @@
+{
+  "WEB_COOKIE": {
+    "description": "网页 Cookie（可选）",
+    "type": "string",
+    "default": "",
+    "hint": "登录 breezeblue.ai 后从开发者工具里复制整段 Cookie（形如 a=b; c=d）。填了之后余额会多出套餐、今日签到等信息；cookie 过期时这里改掉即可，改完立即生效，不用重启",
+    "obvious_hint": true
+  },
+  "WEB_BASE": {
+    "description": "网页站点地址",
+    "type": "string",
+    "default": "https://breezeblue.ai",
+    "hint": "只用于 cookie 方式查询余额，一般不用改"
+  }
+}

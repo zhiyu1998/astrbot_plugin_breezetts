@@ -29,6 +29,7 @@ DISPLAY_NAME = "Breeze TTS"
 DEFAULT_API_BASE = "https://api.breeze.blue/v1"
 DEFAULT_MODEL = "breeze-tts-2"
 DEFAULT_VOICE = "voc_8yud7hz7c9q2"
+DEFAULT_WEB_BASE = "https://breezeblue.ai"
 
 DEFAULT_CONFIG_TMPL = {
     "id": PROVIDER_TYPE_NAME,
@@ -38,7 +39,9 @@ DEFAULT_CONFIG_TMPL = {
     "provider_type": "text_to_speech",
     "enable": True,
     "api_key": "",
+    "cookie": "",
     "api_base": DEFAULT_API_BASE,
+    "web_base": DEFAULT_WEB_BASE,
     "model": DEFAULT_MODEL,
     "voice": DEFAULT_VOICE,
     "output_format": "wav",

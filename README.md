@@ -101,6 +101,18 @@ data/plugins/astrbot_plugin_breezetts/
 
 余额查询复用提供商配置里的 `api_key` / `api_base` / `proxy`，不需要另外再填一份 key。
 
+### 用 cookie 补充套餐信息（可选）
+
+只填 `api_key` 就能看到余额和今日消耗。如果想连**套餐 / 今日签到可领**一起看到，再填一个网页 Cookie：
+
+1. 浏览器登录 <https://breezeblue.ai>，打开开发者工具 → Network，随便点一个 `breezeblue.ai/api/...` 请求；
+2. 复制请求头里的整段 `Cookie:`（形如 `a=b; c=d; ...`）；
+3. 粘到 AstrBot 面板 → 插件 → Breeze TTS 适配器 → 配置 → **网页 Cookie**（`WEB_COOKIE`），保存即可。
+
+Cookie 会过期。过期后余额仍会正常显示，只是多一行 `⚠️ 网页 Cookie 已失效，去后台重新复制一份`，把新的粘进去就好——**配置是每次调用现读的，改完立即生效，不用重启**。
+
+想用 cookie 单独查（例如没配 api_key）也可以，此时展示的是网页接口的余额与累计消耗。
+
 ## 配置项
 
 | 字段 | 说明 | 默认 |
@@ -113,6 +125,13 @@ data/plugins/astrbot_plugin_breezetts/
 | `language_code` | 语言 | `zh` |
 | `timeout` | 超时（秒） | `60` |
 | `proxy` | HTTP 代理 | 空 |
+
+插件自身的配置（面板 → 插件 → Breeze TTS 适配器 → 配置）：
+
+| 字段 | 说明 | 默认 |
+| --- | --- | --- |
+| `WEB_COOKIE` | 网页 Cookie，用于补充套餐/签到信息；过期换掉即可，立即生效 | 空 |
+| `WEB_BASE` | 网页站点地址，一般不用改 | `https://breezeblue.ai` |
 
 ## 发版
 
